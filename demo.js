@@ -8,6 +8,10 @@ function Client(stream) {
 	this.name = null;
 }
 
+function Game(client) {
+	this.players = [client];
+}
+
 function nameClient(client, data, callback) {
 	client.name = data.match(/\S+/);
   clients.forEach(function(c) {
@@ -19,19 +23,14 @@ function nameClient(client, data, callback) {
 	callback(client);
 }
 
-function Game(client) {
-	this.players = [client];
-}
-
 function newGame(client) {
-	for (var i = 0; i < games.length; i = i + 1) {
-		var game = games[i];
+	games.forEach(function(game) {
 		if (game.players.length === 1) {
 			game.players[0].stream.write(client.name + " has joined your game.\n");
 			game.players.push(client);
 			return game;
 		}
-	};
+	});
 	
 	var aNewGame = new Game(client);
 	return aNewGame;
@@ -70,7 +69,7 @@ var server = net.createServer(function (stream) {
 	    if (client.name == null) {
 				process.nextTick(function() {
 					nameClient(client, data, findGameForClient)
-					});
+				});
 	    }	    
 	  });	
 		
