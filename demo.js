@@ -6,10 +6,39 @@ var games 	= [];
 function Client(stream) {
   this.stream = stream;
 	this.name = null;
+	this.game = null;
+	this.turn = null;
+	
+	return this;
 }
 
 function Game(client) {
 	this.players = [client];
+	client.game = this;
+	
+	this.available = function() {
+		if (this.players.length === 1) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	this.active = function() {
+		if (this.players.length === 2) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	this.addPlayer = function(newPlayer) {
+		this.players[0].stream.write(newPlayer.name + " has joined your game.\n"); 
+		newPlayer.game = this;
+		this.players.push(newPlayer);
+	}
+	
+	return this;
 }
 
 function nameClient(client, data, callback) {
@@ -23,33 +52,37 @@ function nameClient(client, data, callback) {
 	callback(client);
 }
 
-function newGame(client) {
-	games.forEach(function(game) {
-		if (game.players.length === 1) {
-			game.players[0].stream.write(client.name + " has joined your game.\n");
-			game.players.push(client);
+function findAvailableGame() {
+	for (var i = 0; i < games.length; i++) {
+		var game = games[i];
+		if (game.available()) {
 			return game;
-		}
-	});
+		};
+	}
 	
-	var aNewGame = new Game(client);
-	return aNewGame;
+	return null;
 }
-
 
 function findGameForClient(client) {
-	var game = newGame(client);
-	if (game.players.length === 1) {
+	var game = findAvailableGame();
+	
+	if (game) {
+		game.addPlayer(client);
+	} else {
+		game = Game(client);
 		games.push(game);
-	};	
+	}
+	
 }
 
-function broadcastClientData(client, data) {
-	clients.forEach(function(c) {
-    if (c != client) {
-      c.stream.write(client.name + ": " + data);
-    }
-  });
+function processInput(client, data) {
+	var command = data.match(/\S+/);
+	var game = client.game;
+	if (game.active()) {
+		client.turn = command;
+	} else {
+		client.stream.write("Waiting for an opponent. \n");
+	}
 }
 
 var server = net.createServer(function (stream) {
@@ -66,12 +99,16 @@ var server = net.createServer(function (stream) {
 	});
 	
 	stream.addListener("data", function (data) {
-	    if (client.name == null) {
-				process.nextTick(function() {
-					nameClient(client, data, findGameForClient)
-				});
-	    }	    
-	  });	
+    if (client.name == null) {
+			process.nextTick(function() {
+				nameClient(client, data, findGameForClient)
+			});
+			return;
+    }
+
+		processInput(client, data);
+	    
+	 });	
 		
 });
 
