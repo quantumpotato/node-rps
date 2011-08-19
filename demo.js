@@ -71,10 +71,7 @@ var server = net.createServer(function (stream) {
 				process.nextTick(function() {
 					nameClient(client, data, findGameForClient)
 					});
-	    }
-	
-			broadcastClientData(client, data);
-	    
+	    }	    
 	  });	
 		
 });
