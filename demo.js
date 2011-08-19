@@ -4,6 +4,24 @@ var clients = [];
 
 function Client(stream) {
   this.stream = stream;
+	this.name = null;
+}
+
+function nameClient(client, data) {
+	client.name = data.match(/\S+/);
+  clients.forEach(function(c) {
+    if (c != client) {
+      c.stream.write(client.name + " has joined.\n");
+    }
+  });
+}
+
+function broadcastClientData(client, data) {
+	clients.forEach(function(c) {
+    if (c != client) {
+      c.stream.write(client.name + ": " + data);
+    }
+  });
 }
 
 var server = net.createServer(function (stream) {
@@ -15,21 +33,19 @@ var server = net.createServer(function (stream) {
 
   stream.addListener("connect", function () {
 		process.nextTick(function() {
-    	stream.write("Welcome!\n");
+    	stream.write("Welcome! Please enter your name. \n");
   	});		
 	});
 	
-  stream.addListener("data", function (data) {
-		var broadcast = data.match(/\S+/)[0];
-		for (var i = 0; i < clients.length; i = i + 1) {
-			var c = clients[i];
-			c.stream.write(broadcast+"\n");
-		}
-	});
+	stream.addListener("data", function (data) {
+	    if (client.name == null) {
+				nameClient(client, data);
+	      return;
+	    }
 	
-	process.on('uncaughtException', function (err) {
-		console.log('WARNING! UNCAUGHT EXCEPTION: ' + err);
-	});
+			broadcastClientData(client, data);
+	    
+	  });	
 		
 });
 
