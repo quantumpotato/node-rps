@@ -103,7 +103,6 @@ function findGameForClient(client) {
 		game = Game(client);
 		games.push(game);
 	}
-	
 }
 
 function validRPSChoice(choice) {
