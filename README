@@ -1,0 +1,2 @@
+node rps.js
+new tab: nc localhost 7000
