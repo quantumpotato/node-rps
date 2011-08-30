@@ -9,9 +9,20 @@ eventEmitter.on("choiceValidated", processValidChoice);
 eventEmitter.on("availableGameFound",processAvailableGame);
 eventEmitter.on("playerNamed", findAvailableGame);
 eventEmitter.on("resultProcessed",processResult);
+eventEmitter.on("secondPlayerJoined",broadcast);
+eventEmitter.on("playersHaveDecided",playersHaveDecided);
 
 function processResult(game, result) {
 	console.log("processing!");
+	
+	
+	//Broadcast message:
+	//Game, event: first player victory
+	//Game, event: second player victory
+	//Game, event: draw
+	
+	//Communication Handler: listens to event and writes to stream
+	//State handler: listens to event and changes state
 	
 	//Make this block be async with game.finish
 	if (result === "win") {
@@ -132,6 +143,7 @@ function Game(client) {
 	}
 	
 	this.startGame = function() {
+		console.log("should prompt for move");
 		process.nextTick(promptForMove(this.players[0]));
 		process.nextTick(promptForMove(this.players[1]));
 	}
@@ -141,7 +153,7 @@ function Game(client) {
 		newPlayer.stream.write("Joined game with " + this.players[0].name + "\n");
 		newPlayer.game = this;
 		this.players.push(newPlayer);
-		process.nextTick(this.startGame);
+		eventEmitter.emit("secondPlayerJoined",this,"Please enter r, p or s");
 	}
 	
 	this.announce = function(announcement) {
@@ -150,6 +162,17 @@ function Game(client) {
 	}
 	
 	return this;
+}
+
+function broadcast(game, message) {
+	game.players[0].stream.write(message + "\n");
+	game.players[1].stream.write(message + "\n");
+}
+
+function secondPlayerJoined(game) {
+	console.log("second player joined");
+	process.nextTick(promptForMove(game.players[0]));
+	process.nextTick(promptForMove(game.players[1]));
 }
 
 function promptForMove(client) {
@@ -162,9 +185,9 @@ function nameClient(client, data) {
   clients.forEach(function(c) {
     process.nextTick(function() {
 			if (c != client) {
-	      c.stream.write(client.name + " has joined the server.\n");
+					c.stream.write(client.name + " has joined the server.\n");	  
 	    }
-		})
+		});
   });
 
 	eventEmitter.emit("playerNamed", client);
@@ -204,22 +227,27 @@ function validateRPSChoice(player, data) {
 		});
 	}
 }
- 
+
+function playersHaveDecided(game) {
+	game.evaluateChoices();
+} 
+
 function processValidChoice(player, choice) {
 	player.choice = choice;		
 	player.stream.write("You chose " + choice + "\n");
 	var game = player.game;
 	if (game.isActive() && game.bothPlayersHaveDecided()) {
-		process.nextTick(game.evaluateChoices());
+		eventEmitter.emit("playersHaveDecided", game);
 	}
 }
 
 function processInput(player, data) {
 	//Leaving process input here because we may not want to do other actions besides validateRPSChoice
-	process.nextTick(validateRPSChoice(player, data));	
+	//For some reason, processNextTick here fails!
+	validateRPSChoice(player, data);	
 }
 
-var server = net.createServe r(function (stream) {
+var server = net.createServer(function (stream) {
   var client = new Client(stream);
   clients.push(client);
 
@@ -239,9 +267,9 @@ var server = net.createServe r(function (stream) {
 		processInput(client, data);    
 	 });			
 	
-	process.on('uncaughtException', function (err) {
-		console.log('WARNING! UNCAUGHT EXCEPTION: ' + err);
-	});
+//	process.on('uncaughtException', function (err) {
+//		console.log('WARNING! UNCAUGHT EXCEPTION: ' + err);
+//	});
 	
 });
 
