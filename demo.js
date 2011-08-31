@@ -20,6 +20,12 @@ function CommunicationHandler() {
 			game.players[1].stream.write("Draw game! Choose again wisely.\n");
 		}
 	}
+	
+	this.broadcast = function(game, message) {
+		game.players[0].stream.write(message + "\n");
+		game.players[1].stream.write(message + "\n");
+	}
+	
 }
 
 function GameStateHandler() {
@@ -36,24 +42,8 @@ eventEmitter.on("resultEvaluated", gameStateHandler.processResult);
 eventEmitter.on("choiceValidated", processValidChoice);
 eventEmitter.on("availableGameFound",processAvailableGame);
 eventEmitter.on("playerNamed", findAvailableGame);
-//eventEmitter.on("resultProcessed",processResult);
-eventEmitter.on("secondPlayerJoined",broadcast);
+eventEmitter.on("secondPlayerJoined",communicationHandler.broadcast);
 eventEmitter.on("playersHaveDecided",playersHaveDecided);
-
-function processResult(game, result) {
-	console.log("processing!");
-	
-	//Broadcast message:
-	//Game, event: first player victory
-	//Game, event: second player victory
-	//Game, event: draw
-	
-	//Communication Handler: listens to event and writes to stream
-	//State handler: listens to event and changes state
-	
-	//Make this block be async with game.finish
-
-}
 
 function Rock() {
 	this.evaluateChoice = function(choice) {
@@ -158,8 +148,8 @@ function Game(client) {
 	
 	this.startGame = function() {
 		console.log("should prompt for move");
-		process.nextTick(promptForMove(this.players[0]));
-		process.nextTick(promptForMove(this.players[1]));
+		// process.nextTick(promptForMove(this.players[0]));
+		// process.nextTick(promptForMove(this.players[1]));
 	}
 	
 	this.addSecondPlayer = function(newPlayer) {
@@ -176,11 +166,6 @@ function Game(client) {
 	}
 	
 	return this;
-}
-
-function broadcast(game, message) {
-	game.players[0].stream.write(message + "\n");
-	game.players[1].stream.write(message + "\n");
 }
 
 function secondPlayerJoined(game) {
