@@ -1,2 +1,10 @@
 node rps.js
 new tab: nc localhost 7000
+
+#Development
+
+CommunicationHandler listens to events and writes to a game's player's streams.
+GameStateHandler listens to events and calls methods on the game passed in. 
+
+@quantumpotato
+codemav.com/quantumpotato
