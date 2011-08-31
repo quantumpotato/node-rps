@@ -5,16 +5,43 @@ var games 	= [];
 var events = require('events');
 var eventEmitter = new events.EventEmitter();
 
+function CommunicationHandler() {
+	this.processResult = function(game, result){
+		if (result === "win") {
+			//Refactor to winner/loser message		
+			//Refactor parallel: winner/lose message (instead of game.players[#])
+			game.players[0].stream.write("Victory! You defeated " + game.players[1].name + "\n");
+			game.players[1].stream.write("Defeat! You lost to " + game.players[0].name + "\n");
+		} else if (result === "loss") {
+			game.players[1].stream.write("Victory! You defeated " + game.players[0].name + "\n");
+			game.players[0].stream.write("Defeat! You lost to " + game.players[1].name + "\n");			
+		} else if (result === "draw") {
+			game.players[0].stream.write("Draw game! Choose again wisely.\n");			
+			game.players[1].stream.write("Draw game! Choose again wisely.\n");
+		}
+	}
+}
+
+function GameStateHandler() {
+	this.processResult = function(game, result) {
+			game.finish();
+	}
+}
+
+var communicationHandler = new CommunicationHandler();
+eventEmitter.on("resultEvaluated", communicationHandler.processResult);
+var gameStateHandler = new GameStateHandler();
+eventEmitter.on("resultEvaluated", gameStateHandler.processResult);
+
 eventEmitter.on("choiceValidated", processValidChoice);
 eventEmitter.on("availableGameFound",processAvailableGame);
 eventEmitter.on("playerNamed", findAvailableGame);
-eventEmitter.on("resultProcessed",processResult);
+//eventEmitter.on("resultProcessed",processResult);
 eventEmitter.on("secondPlayerJoined",broadcast);
 eventEmitter.on("playersHaveDecided",playersHaveDecided);
 
 function processResult(game, result) {
 	console.log("processing!");
-	
 	
 	//Broadcast message:
 	//Game, event: first player victory
@@ -25,21 +52,7 @@ function processResult(game, result) {
 	//State handler: listens to event and changes state
 	
 	//Make this block be async with game.finish
-	if (result === "win") {
-		//Refactor to winner/loser message		
-		//Refactor parallel: winner/lose message (instead of game.players[#])
-		game.players[0].stream.write("Victory! You defeated " + game.players[1].name + "\n");
-		game.players[1].stream.write("Defeat! You lost to " + game.players[0].name + "\n");
-	} else if (result === "loss") {
-		game.players[1].stream.write("Victory! You defeated " + game.players[0].name + "\n");
-		game.players[0].stream.write("Defeat! You lost to " + game.players[1].name + "\n");			
-	} else if (result === "draw") {
-		game.players[0].stream.write("Draw game! Choose again wisely.\n");			
-		game.players[1].stream.write("Draw game! Choose again wisely.\n");
-	}
 
-	//use async library with above block
-	game.finish();
 }
 
 function Rock() {
@@ -115,6 +128,7 @@ function Game(client) {
 	}
 
 	this.finish = function() {
+		console.log("game finished");
 		this.players[0].choice = null;
 		this.players[1].choice = null;
 	}
@@ -139,7 +153,7 @@ function Game(client) {
 	
 	this.evaluateChoices = function() {
 		var result = this.players[0].getChoiceObject().evaluateChoice(this.players[1].choice);
-		eventEmitter.emit("resultProcessed",this, result);
+		eventEmitter.emit("resultEvaluated",this, result);
 	}
 	
 	this.startGame = function() {
