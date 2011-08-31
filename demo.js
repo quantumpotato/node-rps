@@ -35,11 +35,15 @@ function CommunicationHandler() {
 
 function GameStateHandler() {
 	this.processResult = function(game, result) {
-			game.finish();
+		game.finish();
 	}
 	
 	this.secondPlayerJoining = function(game, newPlayer) {
 		game.addSecondPlayer(newPlayer);
+	}
+	
+	this.playersHaveDecided = function(game) {
+		game.evaluateChoices();
 	}
 }
 
@@ -56,7 +60,7 @@ eventEmitter.on("choiceValidated", processValidChoice);
 eventEmitter.on("availableGameFound",processAvailableGame);
 eventEmitter.on("playerNamed", findAvailableGame);
 eventEmitter.on("secondPlayerJoined",communicationHandler.broadcast);
-eventEmitter.on("playersHaveDecided",playersHaveDecided);
+eventEmitter.on("playersHaveDecided",gameStateHandler.playersHaveDecided);
 
 function Rock() {
 	this.evaluateChoice = function(choice) {
@@ -231,10 +235,6 @@ function validateRPSChoice(player, data) {
 		});
 	}
 }
-
-function playersHaveDecided(game) {
-	game.evaluateChoices();
-} 
 
 function processValidChoice(player, choice) {
 	player.choice = choice;		
