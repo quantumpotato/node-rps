@@ -37,6 +37,10 @@ function GameStateHandler() {
 	this.processResult = function(game, result) {
 			game.finish();
 	}
+	
+	this.secondPlayerJoining = function(game, newPlayer) {
+		game.addSecondPlayer(newPlayer);
+	}
 }
 
 var communicationHandler = new CommunicationHandler();
@@ -45,6 +49,8 @@ eventEmitter.on("addSecondPlayerToGame", communicationHandler.secondPlayerJoinin
 
 var gameStateHandler = new GameStateHandler();
 eventEmitter.on("resultEvaluated", gameStateHandler.processResult);
+eventEmitter.on("addSecondPlayerToGame", gameStateHandler.secondPlayerJoining);
+
 
 eventEmitter.on("choiceValidated", processValidChoice);
 eventEmitter.on("availableGameFound",processAvailableGame);
@@ -154,11 +160,9 @@ function Game(client) {
 	}
 	
 	this.addSecondPlayer = function(newPlayer) {
-		// this.players[0].stream.write(newPlayer.name + " has joined your game.\n"); 
-		// newPlayer.stream.write("Joined game with " + this.players[0].name + "\n");
-		newPlayer.game = this;
 		this.players.push(newPlayer);
-		eventEmitter.emit("secondPlayerJoined",this,"Please enter r, p or s");
+		newPlayer.game = this;
+		eventEmitter.emit("secondPlayerJoined",this,"Please enter r, p or s");		
 	}
 	
 	this.announce = function(announcement) {
