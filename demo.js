@@ -26,6 +26,11 @@ function CommunicationHandler() {
 		game.players[1].stream.write(message + "\n");
 	}
 	
+	this.secondPlayerJoining = function(game, newPlayer) {
+		game.players[0].stream.write(newPlayer.name + " has joined your game.\n"); 
+		newPlayer.stream.write("Joined game with " + game.players[0].name + "\n");
+	}
+	
 }
 
 function GameStateHandler() {
@@ -36,6 +41,8 @@ function GameStateHandler() {
 
 var communicationHandler = new CommunicationHandler();
 eventEmitter.on("resultEvaluated", communicationHandler.processResult);
+eventEmitter.on("addSecondPlayerToGame", communicationHandler.secondPlayerJoining);
+
 var gameStateHandler = new GameStateHandler();
 eventEmitter.on("resultEvaluated", gameStateHandler.processResult);
 
@@ -146,15 +153,9 @@ function Game(client) {
 		eventEmitter.emit("resultEvaluated",this, result);
 	}
 	
-	this.startGame = function() {
-		console.log("should prompt for move");
-		// process.nextTick(promptForMove(this.players[0]));
-		// process.nextTick(promptForMove(this.players[1]));
-	}
-	
 	this.addSecondPlayer = function(newPlayer) {
-		this.players[0].stream.write(newPlayer.name + " has joined your game.\n"); 
-		newPlayer.stream.write("Joined game with " + this.players[0].name + "\n");
+		// this.players[0].stream.write(newPlayer.name + " has joined your game.\n"); 
+		// newPlayer.stream.write("Joined game with " + this.players[0].name + "\n");
 		newPlayer.game = this;
 		this.players.push(newPlayer);
 		eventEmitter.emit("secondPlayerJoined",this,"Please enter r, p or s");
@@ -208,7 +209,7 @@ function findAvailableGame(player) {
 
 function processAvailableGame(client, game) {
 	if (game) {
-		game.addSecondPlayer(client);
+		eventEmitter.emit("addSecondPlayerToGame", game, client);
 	} else {
 		game = new Game(client);
 		games.push(game);
