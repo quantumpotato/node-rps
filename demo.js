@@ -59,7 +59,7 @@ eventEmitter.on("addSecondPlayerToGame", gameStateHandler.secondPlayerJoining);
 eventEmitter.on("choiceValidated", processValidChoice);
 eventEmitter.on("availableGameFound",processAvailableGame);
 eventEmitter.on("playerNamed", findAvailableGame);
-eventEmitter.on("secondPlayerJoined",communicationHandler.broadcast);
+eventEmitter.on("gameBroadcast",communicationHandler.broadcast);
 eventEmitter.on("playersHaveDecided",gameStateHandler.playersHaveDecided);
 
 function Rock() {
@@ -166,26 +166,10 @@ function Game(client) {
 	this.addSecondPlayer = function(newPlayer) {
 		this.players.push(newPlayer);
 		newPlayer.game = this;
-		eventEmitter.emit("secondPlayerJoined",this,"Please enter r, p or s");		
-	}
-	
-	this.announce = function(announcement) {
-		this.players[0].stream.write(announcement);
-		this.players[1].stream.write(announcement);
+		eventEmitter.emit("gameBroadcast",this,"Please enter r, p or s");		
 	}
 	
 	return this;
-}
-
-function secondPlayerJoined(game) {
-	console.log("second player joined");
-	process.nextTick(promptForMove(game.players[0]));
-	process.nextTick(promptForMove(game.players[1]));
-}
-
-function promptForMove(client) {
-	client.choice = null;
-	client.stream.write("Enter r, p or s \n");
 }
 
 function nameClient(client, data) {
