@@ -5,30 +5,33 @@ var games 	= [];
 var events = require('events');
 var eventEmitter = new events.EventEmitter();
 
+var lineEnd = "\n> ";
+var arrowPrompt = "> ";
+
 function CommunicationHandler() {
 	this.processResult = function(game, result){
 		if (result === "win") {
 			//Refactor to winner/loser message		
 			//Refactor parallel: winner/lose message (instead of game.players[#])
-			game.players[0].stream.write("Victory! You defeated " + game.players[1].name + "\n");
-			game.players[1].stream.write("Defeat! You lost to " + game.players[0].name + "\n");
+			game.players[0].stream.write("Victory! You defeated " + game.players[1].name + lineEnd);
+			game.players[1].stream.write("Defeat! You lost to " + game.players[0].name + lineEnd);
 		} else if (result === "loss") {
-			game.players[1].stream.write("Victory! You defeated " + game.players[0].name + "\n");
-			game.players[0].stream.write("Defeat! You lost to " + game.players[1].name + "\n");			
+			game.players[1].stream.write("Victory! You defeated " + game.players[0].name + lineEnd);
+			game.players[0].stream.write("Defeat! You lost to " + game.players[1].name + lineEnd);			
 		} else if (result === "draw") {
-			game.players[0].stream.write("Draw game! Choose again wisely.\n");			
-			game.players[1].stream.write("Draw game! Choose again wisely.\n");
+			game.players[0].stream.write("Draw game! Choose again wisely." + lineEnd);			
+			game.players[1].stream.write("Draw game! Choose again wisely." + lineEnd);
 		}
 	}
 	
 	this.broadcast = function(game, message) {
-		game.players[0].stream.write(message + "\n");
-		game.players[1].stream.write(message + "\n");
+		game.players[0].stream.write(message + lineEnd);
+		game.players[1].stream.write(message + lineEnd);
 	}
 	
 	this.secondPlayerJoining = function(game, newPlayer) {
-		game.players[0].stream.write(newPlayer.name + " has joined your game.\n"); 
-		newPlayer.stream.write("Joined game with " + game.players[0].name + "\n");
+		game.players[0].stream.write("\n" + newPlayer.name + " has joined your game" + lineEnd); 
+		newPlayer.stream.write("Joined game with " + game.players[0].name + lineEnd);
 	}
 	
 	this.chat = function(player, chat) {
@@ -40,7 +43,10 @@ function CommunicationHandler() {
 			otherplayer = game.players[0];
 		}
 		
-		otherplayer.stream.write(player.name + ": " + chat);
+		if (otherplayer) {
+			chat = chat.substring(0, chat.length-1);
+			otherplayer.stream.write("\n" + player.name + ": " + chat + lineEnd);
+		}
 	}
 	
 }
@@ -186,15 +192,21 @@ function Game(client) {
 }
 
 function nameClient(client, data) {
-	client.name = data.match(/\S+/);
+	var name = data.match(/\S+/);
+	if (name){
+		client.name = data.match(/\S+/)
+	} else {
+		client.name = "anonymous";
+	}
   clients.forEach(function(c) {
     process.nextTick(function() {
 			if (c != client) {
-					c.stream.write(client.name + " has joined the server.\n");	  
+					c.stream.write(client.name + " has joined the server." + lineEnd);	  
 	    }
 		});
   });
 
+	client.stream.write(arrowPrompt);
 	eventEmitter.emit("playerNamed", client);
 }
 
@@ -228,14 +240,14 @@ function validateRPSChoice(player, data) {
 		eventEmitter.emit("choiceValidated", player, choice);
 	} else {
 		process.nextTick(function(){
-			player.stream.write("Please choose r, p or s. \n");
+			player.stream.write("Please choose r, p or s." + lineEnd);
 		});
 	}
 }
 
 function processValidChoice(player, choice) {
 	player.choice = choice;		
-	player.stream.write("You chose " + choice + "\n");
+	player.stream.write("You chose " + choice + lineEnd);
 	var game = player.game;
 	if (game.isActive() && game.bothPlayersHaveDecided()) {
 		eventEmitter.emit("playersHaveDecided", game);
@@ -243,8 +255,10 @@ function processValidChoice(player, choice) {
 }
 
 function inputIsRPSMove(input) {
-	input = input.match(/\S+/)[0];
-	console.log("input is:" + input);
+	input = input.match(/\S+/);
+	if (input) {
+		input = input[0];
+	}
 	if (input === "r" || input === "p" || input === "s") {
 		return true;
 	}
@@ -257,12 +271,14 @@ function processInput(player, data) {
 	//For some reason, processNextTick here fails!
 // 	var input = data.match(/\S+/);
 	var input = data;
-	console.log("input: " + input[0]);
 	if (inputIsRPSMove(input)) {
 		validateRPSChoice(player, data);	
 	} else {
 		eventEmitter.emit("chat", player, input);
+		player.stream.write(arrowPrompt);
 	}
+	
+//	player.stream.write(arrowPrompt);
 }
 
 var server = net.createServer(function (stream) {
@@ -273,7 +289,7 @@ var server = net.createServer(function (stream) {
   stream.setEncoding("utf8");
 
   stream.addListener("connect", function () {
-    	stream.write("Welcome! Please enter your name. \n");
+    	stream.write("Welcome! Please enter your name\n> ");
 	});
 	
 	stream.addListener("data", function (data) {
