@@ -31,6 +31,18 @@ function CommunicationHandler() {
 		newPlayer.stream.write("Joined game with " + game.players[0].name + "\n");
 	}
 	
+	this.chat = function(player, chat) {
+		var game = player.game;
+		var otherplayer;
+		if (player == game.players[0]) {
+			otherplayer = game.players[1];
+		} else {
+			otherplayer = game.players[0];
+		}
+		
+		otherplayer.stream.write(player.name + ": " + chat);
+	}
+	
 }
 
 function GameStateHandler() {
@@ -50,6 +62,7 @@ function GameStateHandler() {
 var communicationHandler = new CommunicationHandler();
 eventEmitter.on("resultEvaluated", communicationHandler.processResult);
 eventEmitter.on("addSecondPlayerToGame", communicationHandler.secondPlayerJoining);
+eventEmitter.on("chat", communicationHandler.chat);
 
 var gameStateHandler = new GameStateHandler();
 eventEmitter.on("resultEvaluated", gameStateHandler.processResult);
@@ -229,10 +242,27 @@ function processValidChoice(player, choice) {
 	}
 }
 
+function inputIsRPSMove(input) {
+	input = input.match(/\S+/)[0];
+	console.log("input is:" + input);
+	if (input === "r" || input === "p" || input === "s") {
+		return true;
+	}
+	
+	return false;
+}
+
 function processInput(player, data) {
 	//Leaving process input here because we may not want to do other actions besides validateRPSChoice
 	//For some reason, processNextTick here fails!
-	validateRPSChoice(player, data);	
+// 	var input = data.match(/\S+/);
+	var input = data;
+	console.log("input: " + input[0]);
+	if (inputIsRPSMove(input)) {
+		validateRPSChoice(player, data);	
+	} else {
+		eventEmitter.emit("chat", player, input);
+	}
 }
 
 var server = net.createServer(function (stream) {
