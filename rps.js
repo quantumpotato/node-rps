@@ -32,6 +32,7 @@ function CommunicationHandler() {
 	this.secondPlayerJoining = function(game, newPlayer) {
 		game.players[0].stream.write("\n" + newPlayer.name + " has joined your game" + lineEnd); 
 		newPlayer.stream.write("Joined game with " + game.players[0].name + lineEnd);
+		game.players[0].stream.pipe(process.stdout)
 	}
 	
 	this.chat = function(player, chat) {

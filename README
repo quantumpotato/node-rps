@@ -6,5 +6,13 @@ new tab: nc localhost 7000
 CommunicationHandler listens to events and writes to a game's player's streams.
 GameStateHandler listens to events and calls methods on the game passed in. 
 
+#Up Next
+
+If the user is typing something into their terminal and node writes to it, the text is written *over* what the terminal displays.
+If the player presses return, what they were typing gets sent.. but the UI looks bad.
+Possible work-around: StreamHandler saves messages for the user, and only writes *after* the user has sent a message, or is waiting for a game.
+So a player could enter their name, and node would ignore what they send until someone joins their game.
+Once in game, the player would only receive updates after they make their move. Not too bad since it could get messy with "Foo has joined the server" popping up.
+
 @quantumpotato
 codemav.com/quantumpotato
