@@ -8,6 +8,13 @@ var eventEmitter = new events.EventEmitter();
 var lineEnd = "\n> ";
 var arrowPrompt = "> ";
 
+function StreamHandler() {
+	this.addMessage = function(player, message) {
+		player.messages.push(message);
+	}
+	
+}
+
 function CommunicationHandler() {
 	this.processResult = function(game, result){
 		if (result === "win") {
@@ -125,6 +132,7 @@ function Scissors() {
 }
 
 function Client(stream) {
+	this.messages = [];
   this.stream = stream;
 	this.name = null;
 	this.game = null;
@@ -136,6 +144,18 @@ function Client(stream) {
 			return new Paper();
 		} else if (this.choice === "s") {
 			return new Scissors();
+		}
+	}
+	
+	this.addMessage = function(message) {
+		this.messages.push(message);
+	}
+	
+	this.processMessages = function() {
+		for (var i = this.messages.length -1; i >= 0; i--) {
+			var message = this.messages[i];
+			this.stream.write(message);
+			this.messages.pop();
 		}
 	}
 	
@@ -271,6 +291,11 @@ function processInput(player, data) {
 	//Leaving process input here because we may not want to do other actions besides validateRPSChoice
 	//For some reason, processNextTick here fails!
 // 	var input = data.match(/\S+/);
+
+	player.addMessage("Message 1\n");
+	player.addMessage("Message 2\n");
+	player.processMessages();
+
 	var input = data;
 	if (inputIsRPSMove(input)) {
 		validateRPSChoice(player, data);	
