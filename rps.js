@@ -12,23 +12,40 @@ function StreamHandler() {
 	this.addMessage = function(player, message) {
 		player.messages.push(message);
 	}
+
+	this.writeMessage = function(player, cb) {
+		if (player.messages.length > 0) {
+			var message = player.messages[0];
+			player.stream.write(message + lineEnd);
+			player.messages.splice(0,1);
+			cb(player,cb);		
+		}
+	}
 	
+	this.sendMessages = function(player) {
+		var messages = player.messages;
+		this.writeMessage(player, this.writeMessage);
+	}	
 }
+
+var streamHandler = new StreamHandler();
 
 function CommunicationHandler() {
 	this.processResult = function(game, result){
 		if (result === "win") {
 			//Refactor to winner/loser message		
 			//Refactor parallel: winner/lose message (instead of game.players[#])
-			game.players[0].stream.write("Victory! You defeated " + game.players[1].name + lineEnd);
-			game.players[1].stream.write("Defeat! You lost to " + game.players[0].name + lineEnd);
+			streamHandler.addMessage(game.players[0], "Victory! You defeated " + game.players[1].name);
+			streamHandler.addMessage(game.players[1], "Defeat! You lost to " + game.players[0].name);
 		} else if (result === "loss") {
-			game.players[1].stream.write("Victory! You defeated " + game.players[0].name + lineEnd);
-			game.players[0].stream.write("Defeat! You lost to " + game.players[1].name + lineEnd);			
+			streamHandler.addMessage(game.players[1], "Victory! You defeated " + game.players[0].name);
+			streamHandler.addMessage(game.players[0], "Defeat! You lost to " + game.players[1].name);
 		} else if (result === "draw") {
-			game.players[0].stream.write("Draw game! Choose again wisely." + lineEnd);			
-			game.players[1].stream.write("Draw game! Choose again wisely." + lineEnd);
+			streamHandler.addMessage(game.players[0], "Draw game! Choose again wisely.");		
+			streamHandler.addMessage(game.players[1], "Draw game! Choose again wisely.");
 		}
+			streamHandler.sendMessages(game.players[0]);
+			streamHandler.sendMessages(game.players[1]);
 	}
 	
 	this.broadcast = function(game, message) {
@@ -53,7 +70,8 @@ function CommunicationHandler() {
 		
 		if (otherplayer) {
 			chat = chat.substring(0, chat.length-1);
-			otherplayer.stream.write("\n" + player.name + ": " + chat + lineEnd);
+			streamHandler.addMessage(otherplayer,player.name + ": " + chat);
+//			otherplayer.stream.write("\n" +  + lineEnd);
 		}
 	}
 	
@@ -151,13 +169,13 @@ function Client(stream) {
 		this.messages.push(message);
 	}
 	
-	this.processMessages = function() {
-		for (var i = this.messages.length -1; i >= 0; i--) {
-			var message = this.messages[i];
-			this.stream.write(message);
-			this.messages.pop();
-		}
-	}
+	// this.processMessages = function() {
+	// 	for (var i = this.messages.length -1; i >= 0; i--) {
+	// 		var message = this.messages[i];
+	// 		this.stream.write(message);
+	// 		this.messages.pop();
+	// 	}
+	// }
 	
 	return this;
 }
@@ -292,9 +310,7 @@ function processInput(player, data) {
 	//For some reason, processNextTick here fails!
 // 	var input = data.match(/\S+/);
 
-	player.addMessage("Message 1\n");
-	player.addMessage("Message 2\n");
-	player.processMessages();
+//	player.processMessages();
 
 	var input = data;
 	if (inputIsRPSMove(input)) {
@@ -303,6 +319,8 @@ function processInput(player, data) {
 		eventEmitter.emit("chat", player, input);
 		player.stream.write(arrowPrompt);
 	}
+	
+	streamHandler.sendMessages(player);
 	
 //	player.stream.write(arrowPrompt);
 }
